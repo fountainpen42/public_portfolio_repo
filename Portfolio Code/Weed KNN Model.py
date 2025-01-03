@@ -33,9 +33,7 @@ print(data.describe())
 
 #%%
 
-#Data Cleaning:
-#We want to ultimately classify weed strains by their THC content along with qualitative feelings from smoking the strain
-#So we will drop columns such as tinnitus, muscle fibrosis, and other columns related to why a respondent said they used the strain
+#Data Cleaning
 
 data = data.drop(columns = ["ptsd",
                             "bipolar_disorder",
@@ -84,7 +82,7 @@ for col in data.columns:
     
 #%%
 
-#Get rid of other irrelevant columns
+#Get rid of irrelevant columns
 
 data = data.drop(columns = ["Unnamed: 0", "most_common_terpene"])
 
@@ -98,12 +96,7 @@ for col in data.columns:
 
 #%%
 
-#Now, before we can run classification, we need to do dimensional reduction
-#For THC level, this variable tupe seems fine as is
-#But for the subjective respondent markers, there is likely problems of multicollinearity, plus the curse of dimensionality
-#So this seems a great use of PCA
-
-#We will handle the "sensations" data columns seperately from name, type, and thc level
+#Cut data
 
 sensationData = data.iloc[:, 3:]
 
@@ -113,7 +106,6 @@ print(sensationData.describe())
 #%%
 
 #Check Correlation
-#NOTE: DELETE NAMES FROM PLOT LATER, TOO MANY TO FIT
 
 dataCorr = sensationData.corr(method = "spearman")
 print("Spearman Correlation Matrix: ", + dataCorr)
@@ -123,8 +115,6 @@ ax = sns.heatmap(dataCorr,
                  vmin=0.5, vmax=1.0,
                  label='big')
 ax.set_title('Spearman Correlation Matrix', fontsize = 24, pad= 30)
-
-#Okay, clearly we have too much correlation, we MUST do dimensional reduction here, everything has a moderate correlation with one another
 
 #%%
 
@@ -170,15 +160,13 @@ eigSata[:] = np.NaN # Convert to NaN
 for i in range(nDraws):
     # Draw the sata from a normal distribution:
     sata = np.random.normal(0,1,[numRows,numColumns]) 
-    # Run the PCA on the sata:
     pca = PCA()
     pca.fit(sata)
-    # Keep the eigenvalues:
     temp = pca.explained_variance_
     eigSata[i] = temp
     
-plt.bar(np.linspace(1,numColumns,numColumns),eigVals,color='#3C69F0') # plot eig_vals from section 4
-plt.plot(np.linspace(1,numColumns,numColumns),np.transpose(eigSata),color='#53F399') # plot eig_sata
+plt.bar(np.linspace(1,numColumns,numColumns),eigVals,color='#3C69F0')
+plt.plot(np.linspace(1,numColumns,numColumns),np.transpose(eigSata),color='#53F399')
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams["font.sans-serif"] = ["Verdana"]
 
@@ -187,11 +175,6 @@ plt.suptitle("Horn's Criteria", fontsize = 18)
 plt.xlabel('Principal Component (SATA)', fontsize = 14)
 plt.ylabel('Eigenvalue of SATA', fontsize = 14)
 plt.legend(['SATA'])
-
-
-#From this noise distribution/Horn's Criteria analysis, we see that the first 5 PC's are meaningful enough to rise above the noise
-#These will be our new variables
-#Now let's figure out what they are
 
 
 #%%
@@ -207,12 +190,6 @@ plt.title("Loading Matrix Plot of Principal Component 1", pad = 30, fontsize = 2
 plt.xlabel('Factor', fontsize = 14)
 plt.ylabel('Eigenvector', fontsize = 14)
 
-#Results:
-#PC 1- points towards relaxed, and dry_mouth and AWAY from aroused
-#PC 2- points towards Lack of Appetite HEAVIlY, energetic, and relaxed
-#PC 3- points twoards Focus SUPER HEAVILY, dry_eyes, and giggly
-#PC 4- points towards headaches and happy, super AWAY from lack of appetite
-#PC 5- points more twords arousal, nausea, giggly, energetic, and creative
 
 #%%
 
@@ -221,21 +198,10 @@ plt.ylabel('Eigenvector', fontsize = 14)
 for col in sensationData.columns:
     print(col)
     
-#%%
-
-#Determine new variables
-
-#PC1 = Bliss?
-#PC2 = Excitement?
-#PC3 = Flow/Zen
-    #This makes a lot of sense, you're super focus so much you forget to blink, you're in a state of flow
-#PC4 = Painful Fulfillment?
-#PC5 = Euphoria/Mania 
-    #This one is also an easy one, you're aroused, nauseous, giggly, energetic, etc. You're in a state of mania
 
 #%%
 
-#Check out new data
+#Check out new data and rename PCs
 
 newArray = rotatedData[:, :5]
 
@@ -274,7 +240,6 @@ ax.set_title('Spearman Correlation Matrix', fontsize = 24, pad= 30)
 #%%
 
 #KNN model
-#Now we can finally use a classification algo to classify strains into hybrid, indica, or sativa using thc content, + sensation data
 weedData = weedData.dropna(axis = 0)
 
 
@@ -297,7 +262,6 @@ weedDataY = weedData["type"]
 
 #weedDataY = hotCode
 
-#DONT FORGET TO NORMALIZE DATA OTHERWISE KNN GETS TOO CONFUSED
 weedDataXNorm = stats.zscore(weedDataX)
 weedDataXNorm = pd.DataFrame(weedDataXNorm, columns =["thc_level", "bliss", "excitement", "flow", "fulfillment", "mania"])
 
@@ -319,8 +283,7 @@ print(confusion_matrix(yTest, yPred))
 
 #%%
 
-#Finding optimal K based on AUC score, max AUC = better!
-#Must use over multi_class for 
+#Finding optimal K based on AUC score
 scoresList = []
 scores = {}
 kRange = range(1, 41)
